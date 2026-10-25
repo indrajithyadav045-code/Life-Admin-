@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "node --watch src/server.mjs",
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs && node --check src/processor.mjs && node --check public/app.js"
+    "check": "node --check src/server.mjs && node --check src/processor.mjs && node --check public/app.js && node --check api/index.mjs && node --check api/[...route].mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
+  }
 }
-
