@@ -4,7 +4,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { neon } from "@neondatabase/serverless";
-import { extractDrafts, makeId, taskBucket } from "./processor.mjs";
+import { extractDraftsWithOpenRouter, makeId, taskBucket } from "./processor.mjs";
 
 const projectDir = dirname(dirname(fileURLToPath(import.meta.url)));
 const dataDir = process.env.DATA_DIR || join(projectDir, "data");
@@ -207,7 +207,8 @@ async function handleRequest(req, res) {
       if (!text) return send(res, 400, { error: "Add the email, bill, or notice text first." });
       if (text.length > 50_000) return send(res, 413, { error: "Text is too long. Keep it under 50,000 characters." });
       const date = validDate(body.referenceDate) ? body.referenceDate : referenceDate;
-      const drafts = extractDrafts(text, date).map(draft => ({
+      const extraction = await extractDraftsWithOpenRouter(text, date);
+      const drafts = extraction.drafts.map(draft => ({
         ...draft,
         id: makeId(),
         sourceName: typeof body.sourceName === "string" ? body.sourceName.slice(0, 160) : null,
@@ -215,6 +216,7 @@ async function handleRequest(req, res) {
       }));
       return send(res, 200, {
         drafts,
+        extractionMethod: extraction.method,
         sourceName: typeof body.sourceName === "string" ? body.sourceName : null,
         message: drafts.length ? "Review the details, then add them to your inbox." : "I couldn’t find a clear action. Try including the requested task and any due date.",
       });
