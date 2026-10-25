@@ -58,3 +58,7 @@ This is a private, single-user MVP. Production mode requires HTTP Basic authenti
 Compose attaches a named volume at /app/data, so saved tasks survive container replacement. Back up that volume. When deploying to a container host, use the Dockerfile, set NODE_ENV=production, APP_USER, APP_PASSWORD, PORT, DATA_DIR, and optionally APP_TIMEZONE (defaults to Asia/Kolkata), and attach durable storage at DATA_DIR. The host must terminate HTTPS. Do not run multiple replicas against this JSON file store; use a database before scaling out. /api/health is available for the host's liveness check.
 
 Run npm run check for JavaScript syntax checks. npm start starts the local Node server; for production, set NODE_ENV=production and the required authentication variables before starting it.
+
+## Optional AI extraction
+
+Set `OPENROUTER_API_KEY` in Vercel Project Settings → Environment Variables to enable AI-assisted extraction. The key stays on the server and must never be added to frontend code or committed. The default model is `openai/gpt-oss-20b:free`; override it with `OPENROUTER_MODEL`. Requests ask OpenRouter for zero-data-retention routing; if no eligible endpoint is available, the app safely falls back to its built-in rules. Without a key, rules-based extraction remains available. All extracted drafts remain reviewable before saving. Document text is sent to OpenRouter only when the key is configured, so avoid processing highly sensitive material unless you have reviewed your provider privacy settings.
