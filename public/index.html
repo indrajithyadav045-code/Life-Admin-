@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7f3">
+  <title>Life Admin Inbox</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>.preview-mode .welcome-row { margin-left: 0; }</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Life Admin Inbox home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9.5h16v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-9Z"/><path d="M4 10l2.3-5h11.4L20 10M9 13h6"/></svg></span>
+      <span>Life Admin Inbox</span>
+    </a>
+    <div class="topbar-right"><span id="dateLabel" class="date-label"></span></div>
+  </header>
+
+  <main class="page-shell">
+    <div class="welcome-row">
+      <div><p class="eyebrow greeting">Good morning, Indrajit</p><h1 id="headline">A little less to remember.</h1><p id="summaryLine" class="summary-line">Gathering your upcoming tasks…</p></div>
+      <button id="mobileAdd" class="mobile-add" aria-label="Add an item">+</button>
+    </div>
+    <div id="workspace" class="workspace">
+      <aside id="captureCard" class="capture-card">
+        <div class="capture-heading"><p class="eyebrow teal">DROP IT HERE</p><h2>What landed in your inbox?</h2><p>Paste an email, bill or notice. I’ll find what to do, and by when.</p></div>
+        <div id="dropArea" class="drop-area">
+          <label class="sr-only" for="sourceText">Paste an email, bill or appointment note</label>
+          <textarea id="sourceText" placeholder="Paste an email, bill or appointment note…"></textarea>
+          <label for="fileInput" class="file-pick"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 2.5h5l4 4v10A1.5 1.5 0 0 1 13.5 18h-7A1.5 1.5 0 0 1 5 16.5v-12A2 2 0 0 1 7 2.5Z"/><path d="M11 2.8v4h4M7.5 12h5M7.5 14.5h5"/></svg><span id="fileLabel">or drop a PDF or screenshot</span></label>
+          <input id="fileInput" type="file" accept=".txt,.eml,.pdf,image/*" hidden>
+        </div>
+        <button id="readButton" class="primary-button read-button">Read it <span aria-hidden="true">→</span></button>
+        <p id="captureMessage" class="capture-message" aria-live="polite"></p>
+        <div class="sample-block"><p class="sample-label">Try a sample</p><div id="sampleButtons" class="sample-buttons"></div></div>
+      </aside>
+      <section id="mainContent" class="main-content" aria-live="polite"><div class="loading-state"><span class="spinner"></span>Getting your inbox ready…</div></section>
+    </div>
+  </main>
+
+  <dialog id="editDialog" class="edit-dialog">
+    <form id="editForm" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow teal">QUICK EDIT</p><h2>Edit this task</h2></div><button type="button" class="icon-button dialog-close" aria-label="Close">×</button></div>
+      <input type="hidden" id="editId">
+      <label>Task<input id="editTitle" required maxlength="160"></label>
+      <div class="form-pair"><label>Due date<input id="editDate" type="date"></label><label>Category<select id="editCategory"><option>Bills</option><option>Health</option><option>School</option><option>Home</option><option>Personal</option></select></label></div>
+      <label>Amount in rupees<input id="editAmount" type="number" min="0" step="0.01" placeholder="Optional"></label>
+      <label>Details<textarea id="editDetails" rows="3"></textarea></label>
+      <div class="dialog-actions"><button type="button" class="secondary-button dialog-cancel">Cancel</button><button class="primary-button" type="submit">Save changes</button></div>
+    </form>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
+

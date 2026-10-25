@@ -1,0 +1,19 @@
+services:
+  life-admin-inbox:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATA_DIR: /app/data
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Kolkata}
+      APP_USER: ${APP_USER:?Set APP_USER in .env}
+      APP_PASSWORD: ${APP_PASSWORD:?Set APP_PASSWORD in .env}
+    volumes:
+      - life-admin-data:/app/data
+
+volumes:
+  life-admin-data:
+
