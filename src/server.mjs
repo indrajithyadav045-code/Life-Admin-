@@ -3,6 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { neon } from "@neondatabase/serverless";
 import { extractDrafts, makeId, taskBucket } from "./processor.mjs";
 
 const projectDir = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -12,6 +13,8 @@ const port = Number(process.env.PORT ?? 3001);
 const production = process.env.NODE_ENV === "production";
 const appUser = process.env.APP_USER || "";
 const appPassword = process.env.APP_PASSWORD || "";
+const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+const runningOnVercel = Boolean(process.env.VERCEL);
 const MAX_BODY_BYTES = 1_000_000;
 const allowedCategories = new Set(["Bills", "Health", "School", "Home", "Personal"]);
 const publicFiles = new Map([
@@ -23,10 +26,7 @@ const publicFiles = new Map([
 let tasks = [];
 let persistQueue = Promise.resolve();
 
-if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid TCP port.");
-if (production && (!appUser || !appPassword || appPassword.length < 16)) {
-  throw new Error("Production requires APP_USER and an APP_PASSWORD of at least 16 characters.");
-}
+if (!runningOnVercel && (!Number.isInteger(port) || port < 1 || port > 65535)) throw new Error("PORT must be a valid TCP port.");
 
 function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -65,6 +65,11 @@ function addDays(date, amount) {
   return result.toISOString().slice(0, 10);
 }
 async function persist() {
+  if (sql) {
+    await sql`INSERT INTO life_admin_state (id, tasks) VALUES (1, ${JSON.stringify(tasks)}::jsonb)
+      ON CONFLICT (id) DO UPDATE SET tasks = EXCLUDED.tasks`;
+    return;
+  }
   const contents = JSON.stringify(tasks, null, 2);
   const operation = persistQueue.then(async () => {
     await mkdir(dataDir, { recursive: true });
@@ -77,6 +82,16 @@ async function persist() {
 }
 
 async function load() {
+  if (sql) {
+    await sql`CREATE TABLE IF NOT EXISTS life_admin_state (
+      id SMALLINT PRIMARY KEY CHECK (id = 1),
+      tasks JSONB NOT NULL DEFAULT '[]'::jsonb
+    )`;
+    const rows = await sql`SELECT tasks FROM life_admin_state WHERE id = 1`;
+    tasks = rows.length && Array.isArray(rows[0].tasks) ? rows[0].tasks : [];
+    if (!rows.length) await persist();
+    return;
+  }
   try {
     tasks = JSON.parse(await readFile(dataFile, "utf8"));
     if (!Array.isArray(tasks)) throw new Error("Stored tasks must be an array.");
@@ -130,7 +145,7 @@ function dashboardSummary(referenceDate) {
   return { todayCount, billsThisWeek, currency: "INR" };
 }
 
-const server = createServer(async (req, res) => {
+async function handleRequest(req, res) {
   setSecurityHeaders(res);
   if (req.method === "OPTIONS") return send(res, 204, {});
   const url = new URL(req.url, "http://" + (req.headers.host ?? "localhost"));
@@ -140,10 +155,17 @@ const server = createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/health") {
       return send(res, 200, { status: "ok", service: "life-admin-inbox-api" });
     }
-    if (!isAuthorized(req)) {
-      res.writeHead(401, { "WWW-Authenticate": 'Basic realm="Life Admin Inbox", charset="UTF-8"', "Cache-Control": "no-store" });
-      return res.end("Authentication required.");
+    if (runningOnVercel && (!appUser || !appPassword || appPassword.length < 16)) {
+      return send(res, 503, { error: "Configure APP_USER and an APP_PASSWORD of at least 16 characters in Vercel." });
     }
+    if (runningOnVercel && !sql) {
+      return send(res, 503, { error: "Configure DATABASE_URL with your Neon connection string in Vercel." });
+    }
+    if (!isAuthorized(req)) {
+      res.writeHead(401, { "WWW-Authenticate": 'Basic realm="Life Admin Inbox", charset="UTF-8"', "Cache-Control": "no-store", "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ error: "Authentication required." }));
+    }
+    if (sql) await load();
     if (req.method === "GET" && publicFiles.has(url.pathname)) {
       const [fileName, contentType] = publicFiles.get(url.pathname);
       const contents = await readFile(join(projectDir, "public", fileName));
@@ -259,17 +281,22 @@ const server = createServer(async (req, res) => {
     const message = error.status ? error.message : production ? "The request could not be processed." : (error.message || "Unknown server error.");
     return send(res, error.status ?? 500, { error: message });
   }
-});
-
-await load();
-server.listen(port, "0.0.0.0", () => console.log(`Life Admin Inbox listening on port ${port} (${production ? "production" : "development"})`));
-
-function shutdown(signal) {
-  console.log(`${signal} received; closing server.`);
-  server.close(error => {
-    if (error) { console.error("Failed to close server cleanly:", error.message); process.exitCode = 1; }
-  });
 }
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+
+export default handleRequest;
+
+if (!runningOnVercel) {
+  const server = createServer(handleRequest);
+  await load();
+  server.listen(port, "0.0.0.0", () => console.log(`Life Admin Inbox listening on port ${port} (${production ? "production" : "development"})`));
+
+  function shutdown(signal) {
+    console.log(`${signal} received; closing server.`);
+    server.close(error => {
+      if (error) { console.error("Failed to close server cleanly:", error.message); process.exitCode = 1; }
+    });
+  }
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+}
 
