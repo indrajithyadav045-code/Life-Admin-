@@ -13,6 +13,7 @@ const port = Number(process.env.PORT ?? 3001);
 const production = process.env.NODE_ENV === "production";
 const appUser = process.env.APP_USER || "";
 const appPassword = process.env.APP_PASSWORD || "";
+const authEnabled = Boolean(appUser || appPassword);
 const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
 const runningOnVercel = Boolean(process.env.VERCEL);
 const MAX_BODY_BYTES = 1_000_000;
@@ -43,7 +44,7 @@ function secureEqual(left, right) {
 }
 
 function isAuthorized(req) {
-  if (!production) return true;
+  if (!production || !authEnabled) return true;
   const match = req.headers.authorization?.match(/^Basic\s+([A-Za-z\d+/]+=*)$/i);
   if (!match) return false;
   let credentials;
@@ -155,8 +156,8 @@ async function handleRequest(req, res) {
     if (req.method === "GET" && url.pathname === "/api/health") {
       return send(res, 200, { status: "ok", service: "life-admin-inbox-api" });
     }
-    if (runningOnVercel && (!appUser || !appPassword || appPassword.length < 16)) {
-      return send(res, 503, { error: "Configure APP_USER and an APP_PASSWORD of at least 16 characters in Vercel." });
+    if (runningOnVercel && authEnabled && (!appUser || appPassword.length < 16)) {
+      return send(res, 503, { error: "When authentication is enabled, set both APP_USER and an APP_PASSWORD of at least 16 characters in Vercel." });
     }
     if (runningOnVercel && !sql) {
       return send(res, 503, { error: "Configure DATABASE_URL with your Neon connection string in Vercel." });
