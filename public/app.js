@@ -92,10 +92,42 @@ function renderDashboard(data) {
   mainContent.innerHTML = '<section class="task-section"><div class="section-heading"><h2>Today</h2><span class="count-pill">' + todayTasks.length + '</span></div>' + todayMarkup + '</section>' + (upcoming.length ? '<section class="task-section"><div class="section-heading"><h2>Upcoming</h2><span class="count-pill neutral">' + upcoming.length + '</span></div><div class="task-grid upcoming-grid">' + upcomingMarkup + '</div></section>' : "") + '<section class="task-section">' + doneMarkup + '</section>';
 }
 
+let apiCredentials = sessionStorage.getItem("lifeAdminApiCredentials") || "";
+let credentialPrompt = null;
+async function requestApi(path, options, credentials) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (credentials) headers.Authorization = "Basic " + credentials;
+  return fetch(path, { ...options, headers });
+}
 async function api(path, options = {}) {
-  const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+  let response = await requestApi(path, options, apiCredentials);
+  if (response.status === 401) {
+    apiCredentials = "";
+    sessionStorage.removeItem("lifeAdminApiCredentials");
+    if (!credentialPrompt) {
+      credentialPrompt = (async () => {
+        const username = window.prompt("Life Admin Inbox username");
+        if (username === null) return null;
+        const password = window.prompt("Life Admin Inbox password");
+        if (password === null) return null;
+        return btoa(username + ":" + password);
+      })().finally(() => { credentialPrompt = null; });
+    }
+    const credentials = await credentialPrompt;
+    if (!credentials) throw new Error("Sign in to load your inbox.");
+    apiCredentials = credentials;
+    sessionStorage.setItem("lifeAdminApiCredentials", credentials);
+    response = await requestApi(path, options, apiCredentials);
+  }
   const payload = response.status === 204 ? {} : await response.json();
-  if (!response.ok) throw new Error(payload.error || "Something went wrong.");
+  if (!response.ok) {
+    if (response.status === 401) {
+      apiCredentials = "";
+      sessionStorage.removeItem("lifeAdminApiCredentials");
+      throw new Error("Sign-in failed. Reload and try again.");
+    }
+    throw new Error(payload.error || "Something went wrong.");
+  }
   return payload;
 }
 async function loadDashboard() { renderDashboard(await api("/api/tasks?referenceDate=" + localDate())); }
