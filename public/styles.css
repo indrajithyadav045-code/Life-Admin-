@@ -2,3 +2,11 @@
 @media(max-width:1120px){.page-shell{padding-left:26px;padding-right:26px}.workspace{grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:22px}.welcome-row{margin-left:382px}.preview-columns{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.preview-aside{grid-column:2}}
 @media(max-width:760px){.topbar{height:62px;padding:0 17px}.brand{font-size:15px;gap:9px}.brand-mark{width:34px;height:34px;border-radius:10px}.topbar-right{gap:10px}.date-label{font-size:12px}.avatar{width:34px;height:34px}.page-shell{padding:20px 16px 42px}.welcome-row{margin:0 0 18px;align-items:center}.greeting{margin-bottom:4px}h1{font-size:25px}.summary-line{max-width:290px;font-size:13px;line-height:1.4}.mobile-add{display:grid;place-items:center;border:0;background:var(--teal);color:white;width:48px;height:48px;border-radius:50%;font-size:29px;box-shadow:0 7px 18px rgba(15,124,114,.28);flex:0 0 auto}.workspace,.workspace.is-preview{grid-template-columns:minmax(0,1fr);gap:24px}.capture-card{padding:21px 19px 19px;border-radius:19px}.capture-heading h2{margin-top:12px;font-size:21px}.drop-area{min-height:190px}.drop-area textarea{min-height:124px}.task-grid{grid-template-columns:minmax(0,1fr);gap:11px}.task-section{margin-bottom:24px}.section-heading h2{font-size:18px}.task-card{padding:16px;border-radius:16px}.task-title{font-size:15px}.task-actions{gap:7px}.preview-columns{grid-template-columns:minmax(0,1fr);gap:13px}.preview-aside{grid-column:auto;padding-top:0}.source-card{padding:16px}.source-card h2{font-size:18px}.review-card{padding:17px}.edit-dialog{padding:18px}}
 
+/* Account forms use the same quiet card treatment as the inbox. */
+[hidden] { display: none !important; }
+.auth-panel { max-width: 480px; margin: 24px auto; }
+.auth-panel h2 { margin: 10px 0; }
+.auth-panel form { display: grid; gap: 18px; margin-top: 24px; }
+.auth-panel label { display: grid; gap: 8px; }
+.auth-panel input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #d8ddd7; border-radius: 8px; background: #fff; font: inherit; }
+.auth-actions { display: flex; flex-wrap: wrap; gap: 10px; }
